@@ -32,7 +32,7 @@ class scannerBackend dottedBox
 coreAudioApi -->|Device and volume change<br>notifications| soundAgentApiDll
 soundAgentApiDll --> |Read device characteristics| coreAudioApi
 
-subgraph scannerService["<b>win-sound-scanner-go</b>"]
+subgraph scannerService["win-sound-scanner-go"]
     invisible1["<br><br><br><br><br>"]
     class invisible1 invisibleNode
     winSoundScannerService["WinSoundScanner<br>Go Windows Service"]
@@ -41,7 +41,7 @@ subgraph scannerService["<b>win-sound-scanner-go</b>"]
 end
 class scannerService dottedBox
 
-subgraph requestQueueMicroservice["Request queue microservice"]
+subgraph requestQueueMicroservice["<b>rmq-to-rest-api-forwarder</b>"]
     requestQueue[("Request Queue<br>(RabbitMQ channel)")]
     rabbitMqRestForwarder["RabbitMQ-to-REST Forwarder<br>(.NET microservice)"]
 end

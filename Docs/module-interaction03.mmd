@@ -1,0 +1,49 @@
+flowchart BT
+
+classDef dottedBox fill:transparent,fill-opacity:0.55, stroke-dasharray:20 5,stroke-width:2px;
+classDef stressedBox fill:#f0f0f0,fill-opacity:0.2,stroke-width:4px;
+classDef invisibleNode fill:transparent,stroke:transparent;
+
+coreAudioApi["Core Audio<br>(Windows API)"]
+
+subgraph scannerBackend["Sound Scanner backend"]
+    invisible3["<br><br><br><br><br>"]
+    class invisible3 invisibleNode
+    goCgoWrapper["SoundLibWrap<br>(Go/CGO module)"]
+    soundAgentApiDll["ANSI C SoundAgentApi.dll,<br>SoundDeviceCollection<br>(C++ class)"]
+    invisible4["<br><br><br><br><br>"]
+    class invisible4 invisibleNode
+end
+class scannerBackend dottedBox
+
+coreAudioApi -->|Device and volume change<br>notifications| soundAgentApiDll
+soundAgentApiDll --> |Read device characteristics| coreAudioApi
+
+subgraph scannerService["win-sound-scanner-go"]
+    invisible1["<br><br><br><br><br>"]
+    class invisible1 invisibleNode
+    winSoundScannerService["WinSoundScanner<br>Go Windows Service"]
+    invisible2["<br><br><br><br><br>"]
+    class invisible2 invisibleNode
+end
+class scannerService dottedBox
+
+subgraph requestQueueMicroservice["<b>rmq-to-rest-api-forwarder</b>"]
+    requestQueue[("Request Queue<br>(RabbitMQ channel)")]
+    rabbitMqRestForwarder["RabbitMQ-to-REST Forwarder<br>(.NET microservice)"]
+end
+class requestQueueMicroservice stressedBox
+
+deviceRepositoryApi["Device Repository Server<br>(REST API)"]
+
+winSoundScannerService --> |Access device| goCgoWrapper
+goCgoWrapper -->|Device events| winSoundScannerService
+
+goCgoWrapper --> |C API calls| soundAgentApiDll
+soundAgentApiDll -->|C / C++ callbacks| goCgoWrapper
+
+winSoundScannerService -->|Enqueue request messages| requestQueue
+
+requestQueue -->|Fetch request messages| rabbitMqRestForwarder
+rabbitMqRestForwarder --> |Detect request messages| requestQueue
+rabbitMqRestForwarder -->|Forward request messages| deviceRepositoryApi
