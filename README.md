@@ -13,9 +13,9 @@ RmqToRestApiForwarder's purpose is to consume messages from RabbitMQ and forward
 ```mermaid
 flowchart BT
 
-classDef dottedBox fill:transparent,fill-opacity:0.55, stroke-dasharray:20 5,stroke-width:2px;
-classDef stressedBox fill:#f0f0f0,fill-opacity:0.2,stroke-width:4px;
-classDef invisibleNode fill:transparent,stroke:transparent;
+classDef dottedBox fill:transparent, fill-opacity:0.55, stroke-dasharray:10 8, stroke-width:2px;
+classDef stressedBox fill:#f0f0f0, fill-opacity:0.2, stroke-dasharray:10 8, stroke-width:4px;
+classDef invisibleNode fill:transparent, stroke:transparent;
 
 coreAudioApi["Core Audio<br>(Windows API)"]
 
@@ -41,9 +41,9 @@ subgraph scannerService["win-sound-scanner-go"]
 end
 class scannerService dottedBox
 
-subgraph requestQueueMicroservice["<b>rmq-to-rest-api-forwarder</b>"]
+subgraph requestQueueMicroservice["<br>"]
     requestQueue[("Request Queue<br>(RabbitMQ channel)")]
-    rabbitMqRestForwarder["RabbitMQ-to-REST Forwarder<br>(.NET microservice)"]
+    rabbitMqRestForwarder["RmqToRestApiForwarder<br>(.NET microservice)"]
 end
 class requestQueueMicroservice stressedBox
 
@@ -55,11 +55,11 @@ goCgoWrapper -->|Device events| winSoundScannerService
 goCgoWrapper --> |C API calls| soundAgentApiDll
 soundAgentApiDll -->|C / C++ callbacks| goCgoWrapper
 
-winSoundScannerService -->|Enqueue request messages| requestQueue
+winSoundScannerService -->|Publish request messages| requestQueue
 
 requestQueue -->|Fetch request messages| rabbitMqRestForwarder
 rabbitMqRestForwarder --> |Detect request messages| requestQueue
-rabbitMqRestForwarder -->|Forward request messages| deviceRepositoryApi
+rabbitMqRestForwarder -->|POST/PUT requests| deviceRepositoryApi
 ```
 </div>
 
