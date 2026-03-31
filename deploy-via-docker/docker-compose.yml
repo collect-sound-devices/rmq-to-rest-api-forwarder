@@ -1,7 +1,7 @@
 services:
   rabbitmq:
     image:
-      rabbitmq:3.13-management
+      rabbitmq:3.13-management-alpine
     restart: unless-stopped
     ports:
       - "5672:5672"
@@ -16,11 +16,8 @@ services:
       danzigereduard/rmq-to-rest-api-forwarder:$version$
     restart: unless-stopped
     environment:
+      DOTNET_ENVIRONMENT: Docker
       RabbitMQ__Service__HostName: rabbitmq
-      NLog__variables__logdir: /app/logs
-      NLog__variables__logname: RmqToRestApiForwarder
-      NLog__targets__all-file__layout: '$${date:format=yyyy-MM-dd HH\:mm\:ss.ffffffzzz} [$${level:lowercase=true}] $${message}'
-      NLog__targets__own-console__target__layout: '$${date:format=yyyy-MM-dd HH\:mm\:ss.ffffffzzz} [$${level:lowercase=true}] $${message}'
     depends_on:
       - rabbitmq
     volumes:
