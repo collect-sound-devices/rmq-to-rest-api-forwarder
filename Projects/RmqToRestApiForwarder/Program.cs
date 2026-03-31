@@ -15,7 +15,6 @@ var builder = Host.CreateDefaultBuilder(args)
 
         logging.AddNLog();
     })
-    .UseWindowsService(options => { options.ServiceName = "RabbitMQ To REST API Forwarder"; })
     .ConfigureServices((context, services) =>
     {
         var config = context.Configuration;
