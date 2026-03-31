@@ -1,7 +1,7 @@
 services:
   rabbitmq:
     image:
-      rabbitmq:3.13-management
+      rabbitmq:3.13-management-alpine
     restart: unless-stopped
     ports:
       - "5672:5672"
