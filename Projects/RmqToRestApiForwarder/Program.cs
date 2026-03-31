@@ -11,7 +11,6 @@ var builder = Host.CreateDefaultBuilder(args)
         logging.SetMinimumLevel(LogLevel.Trace);
 
         LogManager.Setup()
-            .SetupExtensions(ext => ext.RegisterLayoutRenderer<NativeThreadIdLayoutRenderer>("native-thread-id"))
             .LoadConfigurationFromSection(context.Configuration.GetSection("NLog"));
 
         logging.AddNLog();

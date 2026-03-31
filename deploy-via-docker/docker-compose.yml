@@ -19,8 +19,6 @@ services:
       RabbitMQ__Service__HostName: rabbitmq
       NLog__variables__logdir: /app/logs
       NLog__variables__logname: RmqToRestApiForwarder
-      NLog__targets__all-file__layout: '$${date:format=yyyy-MM-dd HH\:mm\:ss.ffffffzzz} [$${level:lowercase=true}] $${message}'
-      NLog__targets__own-console__target__layout: '$${date:format=yyyy-MM-dd HH\:mm\:ss.ffffffzzz} [$${level:lowercase=true}] $${message}'
     depends_on:
       - rabbitmq
     volumes:
