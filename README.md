@@ -1,10 +1,10 @@
 # rmq-to-rest-api-forwarder (RmqToRestApiForwarder)
 
-A event-forwarding helper microservice for the Windows Sound Scanner; see [WinSoundScanner](https://github.com/collect-sound-devices/win-sound-scanner-go).
+A forwarding microservice for the sound messages; see [WinSoundScanner](https://github.com/collect-sound-devices/win-sound-scanner-go) and [LinuxSoundScanner](https://github.com/collect-sound-devices/linux-sound-scanner).
 
 ## Motivation
 
-RmqToRestApiForwarder's purpose is to consume messages from RabbitMQ and forward them to a REST API endpoint.
+RmqToRestApiForwarder's purpose is to forward the RabbitMQ messages produced by Linux and Windows Sound Scanners to a REST API endpoint.
 
 ## Place in *collect-sound-devices* Architecture
 
@@ -67,8 +67,8 @@ rabbitMqRestForwarder -->|POST/PUT requests| deviceRepositoryApi
 
 ## Functions
 
-- (Background) The Windows Sound Scanner transforms its sound events into HTTP request
-  messages and enquies them into a local RabbitMQ message broker
+- (Background) The Windows and Linux Sound Scanners transform the sound events into HTTP request
+  messages and publish them to a local RabbitMQ message broker
 - RmqToRestApiForwarder runs as a Docker container on the Sound Windows Agent host machine
 - It reads from a local RabbitMQ queue and POSTs/PUTs to the configured API base URL
 - It applies debouncing of frequent volume-change PUT-requests.
