@@ -14,7 +14,7 @@ RmqToRestApiForwarder's purpose is to forward the RabbitMQ messages produced by 
 flowchart BT
 
 classDef dottedBox fill:transparent, fill-opacity:0.55, stroke-dasharray:10 8, stroke-width:2px;
-classDef stressedBox fill:#f0f0f0, fill-opacity:0.2, stroke-dasharray:10 8, stroke-width:4px;
+classDef stressedBox fill:#f0f0f0,fill-opacity:0.2,stroke-width:4px;
 classDef invisibleNode fill:transparent, stroke:transparent;
 
 coreAudioApi["Core Audio<br>(Windows API) or<br>Pulse Lib<br>(Linux PulseAudio)"]
