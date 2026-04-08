@@ -1,6 +1,6 @@
 # rmq-to-rest-api-forwarder (RmqToRestApiForwarder)
 
-A forwarding microservice for the sound messages; see [WinSoundScanner](https://github.com/collect-sound-devices/win-sound-scanner-go) and [LinuxSoundScanner](https://github.com/collect-sound-devices/linux-sound-scanner).
+A forwarding microservice for sound messages; see [WinSoundScanner](https://github.com/collect-sound-devices/win-sound-scanner-go) and [LinuxSoundScanner](https://github.com/collect-sound-devices/linux-sound-scanner).
 
 ## Motivation
 
