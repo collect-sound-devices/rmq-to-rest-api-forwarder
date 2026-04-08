@@ -1,6 +1,6 @@
 # rmq-to-rest-api-forwarder (RmqToRestApiForwarder)
 
-A forwarding microservice for the sound messages; see [WinSoundScanner](https://github.com/collect-sound-devices/win-sound-scanner-go) and [LinuxSoundScanner](https://github.com/collect-sound-devices/linux-sound-scanner).
+A forwarding microservice for sound messages; see [WinSoundScanner](https://github.com/collect-sound-devices/win-sound-scanner-go) and [LinuxSoundScanner](https://github.com/collect-sound-devices/linux-sound-scanner).
 
 ## Motivation
 
@@ -14,28 +14,15 @@ RmqToRestApiForwarder's purpose is to forward the RabbitMQ messages produced by 
 flowchart BT
 
 classDef dottedBox fill:transparent, fill-opacity:0.55, stroke-dasharray:10 8, stroke-width:2px;
-classDef stressedBox fill:#f0f0f0, fill-opacity:0.2, stroke-dasharray:10 8, stroke-width:4px;
+classDef stressedBox fill:#f0f0f0,fill-opacity:0.2,stroke-width:4px;
 classDef invisibleNode fill:transparent, stroke:transparent;
 
-coreAudioApi["Core Audio<br>(Windows API)"]
+coreAudioApi["Core Audio<br>(Windows API) or<br>Pulse Lib<br>(Linux PulseAudio)"]
 
-subgraph scannerBackend["Sound Scanner backend"]
-    invisible3["<br><br><br><br><br>"]
-    class invisible3 invisibleNode
-    goCgoWrapper["SoundLibWrap<br>(Go/CGO module)"]
-    soundAgentApiDll["ANSI C SoundAgentApi.dll,<br>SoundDeviceCollection<br>(C++ class)"]
-    invisible4["<br><br><br><br><br>"]
-    class invisible4 invisibleNode
-end
-class scannerBackend dottedBox
-
-coreAudioApi -->|Device and volume change<br>notifications| soundAgentApiDll
-soundAgentApiDll --> |Read device characteristics| coreAudioApi
-
-subgraph scannerService["win-sound-scanner-go"]
+subgraph scannerService["win-sound-scanner-go or linux-sound-scanner"]
     invisible1["<br><br><br><br><br>"]
     class invisible1 invisibleNode
-    winSoundScannerService["WinSoundScanner<br>Go Windows Service"]
+    winSoundScannerService["WinSoundScanner<br>(Windows Service) or<br>LinuxSoundScanner<br>(Docker Container)"]
     invisible2["<br><br><br><br><br>"]
     class invisible2 invisibleNode
 end
@@ -49,11 +36,8 @@ class requestQueueMicroservice stressedBox
 
 deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 
-winSoundScannerService --> |Access device| goCgoWrapper
-goCgoWrapper -->|Device events| winSoundScannerService
-
-goCgoWrapper --> |C API calls| soundAgentApiDll
-soundAgentApiDll -->|C / C++ callbacks| goCgoWrapper
+winSoundScannerService --> |Access device| coreAudioApi
+coreAudioApi -->|Device events| winSoundScannerService
 
 winSoundScannerService -->|Publish request messages| requestQueue
 
@@ -68,9 +52,9 @@ rabbitMqRestForwarder -->|POST/PUT requests| deviceRepositoryApi
 ## Functions
 
 - (Background) The Windows and Linux Sound Scanners transform the sound events into HTTP request
-  messages and publish them to a local RabbitMQ message broker
-- RmqToRestApiForwarder runs as a Docker container on the Sound Windows Agent host machine
-- It reads from a local RabbitMQ queue and POSTs/PUTs to the configured API base URL
+  messages and publish them to a colocated RabbitMQ message queue.
+- RmqToRestApiForwarder runs as a Docker container on the same machine.
+- It reads the messages from a local RabbitMQ queue and POSTs/PUTs to the configured API base URL
 - It applies debouncing of frequent volume-change PUT-requests.
   * The respective time window is configurable via `RabbitMqMessageDeliverySettings:VolumeChangeEventDebouncingWindowInMilliseconds`.
 - It guarantees reliable delivery with delayed retries (*Event Forwarding Pattern*, see below)
@@ -91,10 +75,10 @@ flowchart BT
 classDef invisibleNode fill:transparent,stroke:transparent;
 classDef dottedBox fill:transparent,fill-opacity:0.55, stroke-dasharray:20 5,stroke-width:2px;
 
-subgraph scannerService["win-sound-scanner-go"]
+subgraph scannerService["win-sound-scanner-go or linux-sound-scanner"]
     invisible1["<br><br><br><br><br>"]
     class invisible1 invisibleNode
-    A["WinSoundScanner<br>Go Windows Service"]
+    A["WinSoundScanner<br>(Windows Service) or<br>LinuxSoundScanner<br>(Docker Container)"]
     invisible2["<br><br><br><br><br>"]
     class invisible2 invisibleNode
 end
