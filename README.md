@@ -17,20 +17,7 @@ classDef dottedBox fill:transparent, fill-opacity:0.55, stroke-dasharray:10 8, s
 classDef stressedBox fill:#f0f0f0, fill-opacity:0.2, stroke-dasharray:10 8, stroke-width:4px;
 classDef invisibleNode fill:transparent, stroke:transparent;
 
-coreAudioApi["Core Audio<br>(Windows API)"]
-
-subgraph scannerBackend["win-sound-engine (C++ / Go module)"]
-    invisible3["<br><br><br><br><br>"]
-    class invisible3 invisibleNode
-    goCgoWrapper["SoundLibWrap<br>(Go/CGO module)"]
-    soundAgentApiDll["ANSI C SoundAgentApi.dll,<br>SoundDeviceCollection<br>(C++ class)"]
-    invisible4["<br><br><br><br><br>"]
-    class invisible4 invisibleNode
-end
-class scannerBackend dottedBox
-
-coreAudioApi -->|Device and volume change<br>notifications| soundAgentApiDll
-soundAgentApiDll --> |Read device characteristics| coreAudioApi
+coreAudioApi["Core Audio<br>(Windows API) or<br>Pulse Lib<br>(Linux PulseAudio)"]
 
 subgraph scannerService["win-sound-scanner-go or linux-sound-scanner"]
     invisible1["<br><br><br><br><br>"]
@@ -49,11 +36,8 @@ class requestQueueMicroservice stressedBox
 
 deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 
-winSoundScannerService --> |Access device| goCgoWrapper
-goCgoWrapper -->|Device events| winSoundScannerService
-
-goCgoWrapper --> |C API calls| soundAgentApiDll
-soundAgentApiDll -->|C / C++ callbacks| goCgoWrapper
+winSoundScannerService --> |Access device| coreAudioApi
+coreAudioApi -->|Device events| winSoundScannerService
 
 winSoundScannerService -->|Publish request messages| requestQueue
 
