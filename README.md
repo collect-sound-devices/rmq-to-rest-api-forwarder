@@ -32,10 +32,10 @@ class scannerBackend dottedBox
 coreAudioApi -->|Device and volume change<br>notifications| soundAgentApiDll
 soundAgentApiDll --> |Read device characteristics| coreAudioApi
 
-subgraph scannerService["win-sound-scanner-go"]
+subgraph scannerService["win-sound-scanner-go or linux-sound-scanner"]
     invisible1["<br><br><br><br><br>"]
     class invisible1 invisibleNode
-    winSoundScannerService["WinSoundScanner<br>Go Windows Service"]
+    winSoundScannerService["WinSoundScanner<br>(Windows Service) or<br>LinuxSoundScanner<br>(Docker Container)"]
     invisible2["<br><br><br><br><br>"]
     class invisible2 invisibleNode
 end
