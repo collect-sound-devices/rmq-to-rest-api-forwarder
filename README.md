@@ -68,9 +68,9 @@ rabbitMqRestForwarder -->|POST/PUT requests| deviceRepositoryApi
 ## Functions
 
 - (Background) The Windows and Linux Sound Scanners transform the sound events into HTTP request
-  messages and publish them to a local RabbitMQ message broker
-- RmqToRestApiForwarder runs as a Docker container on the Sound Windows Agent host machine
-- It reads from a local RabbitMQ queue and POSTs/PUTs to the configured API base URL
+  messages and publish them to a colocated RabbitMQ message queue.
+- RmqToRestApiForwarder runs as a Docker container on the same machine.
+- It reads the messages from a local RabbitMQ queue and POSTs/PUTs to the configured API base URL
 - It applies debouncing of frequent volume-change PUT-requests.
   * The respective time window is configurable via `RabbitMqMessageDeliverySettings:VolumeChangeEventDebouncingWindowInMilliseconds`.
 - It guarantees reliable delivery with delayed retries (*Event Forwarding Pattern*, see below)
