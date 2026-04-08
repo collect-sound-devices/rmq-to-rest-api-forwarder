@@ -75,10 +75,10 @@ flowchart BT
 classDef invisibleNode fill:transparent,stroke:transparent;
 classDef dottedBox fill:transparent,fill-opacity:0.55, stroke-dasharray:20 5,stroke-width:2px;
 
-subgraph scannerService["win-sound-scanner-go"]
+subgraph scannerService["win-sound-scanner-go or linux-sound-scanner"]
     invisible1["<br><br><br><br><br>"]
     class invisible1 invisibleNode
-    A["WinSoundScanner<br>Go Windows Service"]
+    A["WinSoundScanner<br>(Windows Service) or<br>LinuxSoundScanner<br>(Docker Container)"]
     invisible2["<br><br><br><br><br>"]
     class invisible2 invisibleNode
 end
