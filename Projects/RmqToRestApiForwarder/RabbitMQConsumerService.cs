@@ -27,6 +27,7 @@ public partial class RabbitMqConsumerService : BackgroundService
     private readonly GitHubCodespaceAwaker _codespaceAwaker;
     private readonly IConnectionFactory _connectionFactory;
     private readonly string _failedQueueName;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<RabbitMqConsumerService> _logger;
 
     private readonly int _maxRetryAttempts;
@@ -46,6 +47,7 @@ public partial class RabbitMqConsumerService : BackgroundService
         IOptions<RabbitMqMessageDeliverySettings> rmqMessageDeliverySettings,
         IOptions<ApiBaseUrlSettings> apiSettings,
         GitHubCodespaceAwaker codespaceAwaker,
+        IHttpClientFactory httpClientFactory,
         ILogger<RabbitMqConsumerService> logger)
     {
         var recoverySeconds = Math.Max(0, rmqServerSettings.Value.NetworkRecoveryIntervalInSeconds);
@@ -60,6 +62,7 @@ public partial class RabbitMqConsumerService : BackgroundService
             NetworkRecoveryInterval = TimeSpan.FromSeconds(recoverySeconds)
         };
         _codespaceAwaker = codespaceAwaker;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
         _queueName = rmqServerSettings.Value.QueueName;
         _retryQueueName = _queueName + ".retry";
@@ -391,7 +394,7 @@ public partial class RabbitMqConsumerService : BackgroundService
 
         try
         {
-            using var httpClient = new HttpClient();
+            using var httpClient = _httpClientFactory.CreateClient();
             using var jsonContent = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
 
             var response = httpMethod.ToUpperInvariant() == "PUT"

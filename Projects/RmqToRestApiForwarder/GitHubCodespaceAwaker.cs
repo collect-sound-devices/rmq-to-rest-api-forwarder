@@ -1,9 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 
 namespace RmqToRestApiForwarder;
 
@@ -18,16 +16,15 @@ public class GitHubCodespaceAwaker(IOptions<GitHubCodespaceSettings> codespaceSe
 
     private readonly int _timeoutSeconds = codespaceSettings.Value.TimeoutSeconds;
 
-    private RequestState _state = RequestState.Idle;
-    private readonly object _stateLock = new();
+    private readonly Lock _stateLock = new();
     private Timer? _resetTimer;
 
     // Thread-safe state property
     private RequestState State
     {
-        get { lock (_stateLock) return _state; }
-        set { lock (_stateLock) _state = value; }
-    }
+        get { lock (_stateLock) return field; }
+        set { lock (_stateLock) field = value; }
+    } = RequestState.Idle;
 
     // Atomic compare-and-set helper
 
