@@ -5,7 +5,6 @@ public static class MessageFields
     public const string HttpRequest = "httpRequest";
     public const string UrlSuffix = "urlSuffix";
     public const string DeviceMessageType = "deviceMessageType";
-    public const string Volume = "volume";
     public const string UpdateDate = "updateDate";
 
     public enum DeviceEventType : byte

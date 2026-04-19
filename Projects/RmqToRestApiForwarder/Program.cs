@@ -1,6 +1,5 @@
 using NLog;
 using NLog.Extensions.Logging;
-using RabbitMQ.Client;
 using RmqToRestApiForwarder;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
@@ -25,7 +24,7 @@ var builder = Host.CreateDefaultBuilder(args)
         services.Configure<GitHubCodespaceSettings>(config.GetSection("GitHubCodespace"));
 
         services.AddSingleton<CryptService>();
-
+        services.AddHttpClient();
         services.AddSingleton<GitHubCodespaceAwaker>();
         services.AddHostedService<RabbitMqConsumerService>();
     });
