@@ -1,0 +1,58 @@
+﻿#-------------------------------------------------------------------------------#
+#               Qodana analysis is configured by qodana.yaml file               #
+#             https://www.jetbrains.com/help/qodana/qodana-yaml.html            #
+#-------------------------------------------------------------------------------#
+
+#################################################################################
+#              WARNING: Do not store sensitive information in this file,        #
+#               as its contents will be included in the Qodana report.          #
+#################################################################################
+version: "1.0"
+
+#Specify inspection profile for code analysis
+profile:
+  #  name: qodana.starter
+  path: .qodana/profiles/inspection-profile01.xml
+
+#Enable inspections
+include:
+  - name: CyclomaticComplexityJS
+
+#Disable inspections
+exclude:
+  - name: All
+    paths:
+      - ./.next
+      - qodana.yaml
+      - README.md
+      - deploy-via-docker\docker-compose.yml
+      - .editorconfig
+      - .github\workflows
+      - deploy-via-docker
+      - Projects\RmqToRestApiForwarder\appsettings.Docker.json
+      - Projects\RmqToRestApiForwarder\appsettings.json
+      - docker-compose.yml
+      - PODMAN-vs-DOCKER.md
+      - RmqToRestApiForwarder-Release-Notes.md
+
+#Execute shell command before Qodana execution (Applied in CI/CD pipeline)
+#bootstrap: sh ./prepare-qodana.sh
+
+#Install IDE plugins before Qodana execution (Applied in CI/CD pipeline)
+#plugins:
+#  - id: <plugin.id> #(plugin id can be found at https://plugins.jetbrains.com)
+
+# Quality gate. Will fail the CI/CD pipeline if any condition is not met
+# severityThresholds - configures maximum thresholds for different problem severities
+# testCoverageThresholds - configures minimum code coverage on a whole project and newly added code
+#  coverage is available in Ultimate and Ultimate Plus plans
+#failureConditions:
+#  severityThresholds:
+#    any: 15
+#    critical: 5
+#  testCoverageThresholds:
+#    fresh: 70
+#    total: 50
+
+#Specify Qodana linter for analysis (Applied in CI/CD pipeline)
+linter: jetbrains/qodana-js:2025.3

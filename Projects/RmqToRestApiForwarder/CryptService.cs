@@ -49,7 +49,7 @@ public class CryptService(ILogger<CryptService> logger)
         return originalText;
     }
 
-    public string Decrypt(string cipherText, string passphrase)
+    private string Decrypt(string cipherText, string passphrase)
     {
         if (string.IsNullOrEmpty(cipherText))
             throw new ArgumentNullException(nameof(cipherText));

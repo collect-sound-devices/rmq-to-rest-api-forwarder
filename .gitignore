@@ -244,7 +244,6 @@ test/cppunit/lib/TestRunner.dll
 test/cppunit/lib/cppunitd.lib
 test/cppunit/lib/testrunnerd.lib
 test/cppunit/lib/cppunit.lib
-*.tmp
 trace*.log
 test/cppunit/lib/TestRunner.lib
 test/cppunit/lib/TestRunnerd.lib
