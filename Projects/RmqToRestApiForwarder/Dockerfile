@@ -1,10 +1,10 @@
 # See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images faster for debugging.
 
 # Base runtime image
-FROM mcr.microsoft.com/dotnet/runtime:8.0-alpine AS base
+FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine AS base
 WORKDIR /app
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS publish
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS publish
 WORKDIR /src
 
 # Copy entire repo to ensure custom MSBuild imports (msbuildLib) are available
