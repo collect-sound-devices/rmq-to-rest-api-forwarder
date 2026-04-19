@@ -143,7 +143,7 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 
 ## Developer Environment: How to Build and Run (Windows)
 
-1. Install Visual Studio 2022 or the .NET 8 SDK
+1. Install Visual Studio 2026 or the .NET 10 SDK
 2. Restore packages and build the solution:
 
     ```powershell
@@ -162,6 +162,7 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 4. Podman vs Docker.<br>See: [PODMAN-vs-DOCKER.md](https://github.com/collect-sound-devices/rmq-to-rest-api-forwarder/blob/HEAD/PODMAN-vs-DOCKER.md)
 
 ## Changelog
+- 2026-04-19: .NET 8 -> .NET 10 upgrade
 - 2026-02-28: Repository moved to `collect-sound-devices`. Documentaion improvements: fixes, clarifications, diagrams
 - 2025-12-18: Switched MSBuild inline tasks to RoslynCodeTaskFactory for cross-platform builds (Windows/Linux).
 - 2025-12-18: Replaced legacy tasks with inline regex and zip implementations; fixed warnings and improved Docker publish flow.

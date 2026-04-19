@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     outputs:
       version: ${{ steps.get_version.outputs.VERSION }}  # Output the VERSION variable
 

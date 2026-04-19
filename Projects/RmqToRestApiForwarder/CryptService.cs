@@ -96,11 +96,10 @@ public class CryptService(ILogger<CryptService> logger)
     // Helper to derive a 256-bit key from the passphrase
     private static byte[] GetAesKeyFromPassphrase(string passphrase)
     {
-        // Using a fixed salt for simplicity. In production, use a unique salt per secret.
+        // Using a fixed salt for simplicity. The production should use a unique salt per secret.
         var salt = Encoding.UTF8.GetBytes("FixedSaltValue");
         const int iterations = 10000; // PBKDF2 iterations
 
-        using var rfc2898 = new Rfc2898DeriveBytes(passphrase, salt, iterations, HashAlgorithmName.SHA256);
-        return rfc2898.GetBytes(32); // 32 bytes for AES-256
+        return Rfc2898DeriveBytes.Pbkdf2(passphrase, salt, iterations, HashAlgorithmName.SHA256, 32);
     }
 }
