@@ -53,42 +53,6 @@ public override bool Execute()
         </Task>
     </UsingTask>
 
-    <UsingTask TaskName="ZipDirectoryInline" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-        <ParameterGroup>
-            <SourceDirectory ParameterType="System.String" Required="true" />
-            <DestinationFile ParameterType="System.String" Required="true" />
-            <Overwrite ParameterType="System.Boolean" Required="false" />
-        </ParameterGroup>
-        <Task>
-            <Using Namespace="System" />
-            <Using Namespace="System.IO" />
-            <Using Namespace="System.IO.Compression" />
-            <Code Type="Method" Language="cs"><![CDATA[
-public override bool Execute()
-{
-    try
-    {
-        if (File.Exists(DestinationFile) && Overwrite)
-        {
-            File.Delete(DestinationFile);
-        }
-        var destDir = Path.GetDirectoryName(DestinationFile);
-        if (!string.IsNullOrEmpty(destDir))
-            Directory.CreateDirectory(destDir);
-        ZipFile.CreateFromDirectory(SourceDirectory, DestinationFile, CompressionLevel.Optimal, includeBaseDirectory: false);
-        return true;
-    }
-    catch (Exception ex)
-    {
-        Log.LogErrorFromException(ex);
-        return false;
-    }
-}
-            ]]></Code>
-        </Task>
-    </UsingTask>
-
-    <!-- ReSharper disable UnknownTask -->
     <Target Name="ProcessReleaseNotesAndCompose" Condition=" '$(_IsPublishing)' != 'true' " BeforeTargets="BeforeBuild">
         <PropertyGroup>
           <ReleaseNotesTargetPathName>$(ArtifactsDirectory)$(ReleaseNotesFileName)</ReleaseNotesTargetPathName>
@@ -102,24 +66,4 @@ public override bool Execute()
         <!-- Replace $date$ in release notes only -->
         <RegexReplaceInFile Files="$(ReleaseNotesTargetPathName)" Pattern="\$date\$" Replacement="$(BuildDate)" />
     </Target>
-
-    <Target Name="ZipOutputPath" AfterTargets="SignAfterPublish">
-        <Message Text="Zip: PublishFullDirectory: $(PublishFullDirectory)" importance="high" />
-        <PropertyGroup>
-            <PublishFullDirectory>$(ProjectDir)$(PublishDir)</PublishFullDirectory>
-            <ZipFileNameSuffix Condition=" '$(Configuration)' == 'Debug'">-Debug</ZipFileNameSuffix>
-            <ZipFileName>$(ArtifactsDirectory)$(AssemblyName)-WindowsService$(ZipFileNameSuffix)-$(Version).zip</ZipFileName>
-            <ZipStageDir>$(IntermediateOutputPath)zipstage\</ZipStageDir>
-        </PropertyGroup>
-        <Copy DestinationFolder="$(PublishFullDirectory)" SourceFiles="$(ArtifactsDirectory)$(ReleaseNotesFileName)" />
-        <ItemGroup>
-            <FilesToStage Include="$(PublishFullDirectory)**\*.*" Exclude="$(PublishFullDirectory)**\*.pdb;$(PublishFullDirectory)**\appsettings.Docker.json" />
-        </ItemGroup>
-        <RemoveDir Directories="$(ZipStageDir)" />
-        <MakeDir Directories="$(ZipStageDir)" />
-        <Copy SourceFiles="@(FilesToStage)" DestinationFiles="@(FilesToStage->'$(ZipStageDir)%(RecursiveDir)%(Filename)%(Extension)')" />
-        <Delete Files="$(ZipFileName)" ContinueOnError="true" />
-        <ZipDirectoryInline SourceDirectory="$(ZipStageDir)" DestinationFile="$(ZipFileName)" Overwrite="true" />
-    </Target>
-    <!-- ReSharper restore UnknownTask -->
 </Project>

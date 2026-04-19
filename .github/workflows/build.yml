@@ -70,9 +70,6 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1
 
-    - name: Restore NuGets
-      run: nuget restore RmqToRestApiForwarder.sln
-
     - name: Build with MSBuild
       run: |
         msbuild /p:Configuration=Release /target:Rebuild -restore
