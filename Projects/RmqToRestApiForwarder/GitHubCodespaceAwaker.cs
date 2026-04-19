@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -32,6 +33,7 @@ public class GitHubCodespaceAwaker(
 
     // Atomic compare-and-set helper
 
+    [SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging")]
     public async Task Awake(CancellationToken cancellationToken)
     {
         if (State != RequestState.Idle)

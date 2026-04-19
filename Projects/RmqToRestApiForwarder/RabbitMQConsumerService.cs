@@ -35,6 +35,7 @@ public partial class RabbitMqConsumerService : BackgroundService
     private readonly TimeSpan _retryDelay;
     private readonly string _retryQueueName;
     private readonly TimeSpan _volumeDebounceWindow;
+    private IChannel ConsumerChannel => _channel ?? throw new InvalidOperationException("RabbitMQ channel is not initialized.");
     private DebounceWorker? _captureDebouncer;
     private IChannel? _channel;
 
@@ -110,7 +111,6 @@ public partial class RabbitMqConsumerService : BackgroundService
         await Task.Delay(Timeout.Infinite, cancellationToken);
     }
 
-    // Ensures connection + channel + required queues exist. Retries until success or cancellation
     private async Task EnsureConnectionAndTopologyReadyAsync(CancellationToken cancellationToken)
     {
         var connectRetryDelays = new[]
@@ -122,45 +122,11 @@ public partial class RabbitMqConsumerService : BackgroundService
         var maxConnectRetryDelay = TimeSpan.FromSeconds(10);
         var connectRetryIndex = 0;
 
+        // Keep retrying until shutdown because the broker may become available after this worker starts.
         while (!cancellationToken.IsCancellationRequested)
             try
             {
-                _connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
-                _channel = await _connection.CreateChannelAsync(null, cancellationToken);
-
-                await _channel.QueueDeclareAsync(
-                    _queueName,
-                    true,
-                    false,
-                    false,
-                    cancellationToken: cancellationToken);
-
-                var retryArgs = new Dictionary<string, object>
-                {
-                    ["x-dead-letter-exchange"] = string.Empty,
-                    ["x-dead-letter-routing-key"] = _queueName,
-                    ["x-message-ttl"] = (int)_retryDelay.TotalMilliseconds
-                };
-                await _channel.QueueDeclareAsync(
-                    _retryQueueName,
-                    true,
-                    false,
-                    false,
-                    retryArgs!,
-                    cancellationToken: cancellationToken);
-
-                var failedArgs = new Dictionary<string, object>
-                {
-                    ["x-message-ttl"] = (int)TimeSpan.FromHours(24).TotalMilliseconds
-                };
-                await _channel.QueueDeclareAsync(
-                    _failedQueueName,
-                    true,
-                    false,
-                    false,
-                    failedArgs!,
-                    cancellationToken: cancellationToken);
-
+                (_connection, _channel) = await CreateReadyConnectionAsync(cancellationToken);
                 _logger.LogInformation("Connection and topology are ready.");
                 return;
             }
@@ -170,24 +136,6 @@ public partial class RabbitMqConsumerService : BackgroundService
             }
             catch (Exception ex)
             {
-                try
-                {
-                    _channel?.Dispose();
-                }
-                catch
-                {
-                    /* ignored */
-                }
-
-                try
-                {
-                    _connection?.Dispose();
-                }
-                catch
-                {
-                    /* ignored */
-                }
-
                 _channel = null;
                 _connection = null;
 
@@ -200,6 +148,69 @@ public partial class RabbitMqConsumerService : BackgroundService
                     nextDelay.TotalSeconds);
                 await Task.Delay(nextDelay, cancellationToken);
             }
+    }
+
+    private async Task<(IConnection Connection, IChannel Channel)> CreateReadyConnectionAsync(
+        CancellationToken cancellationToken)
+    {
+        var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken);
+
+        try
+        {
+            var channel = await connection.CreateChannelAsync(null, cancellationToken);
+
+            try
+            {
+                await DeclareQueuesAsync(channel, cancellationToken);
+                return (connection, channel);
+            }
+            catch
+            {
+                channel.Dispose();
+                throw;
+            }
+        }
+        catch
+        {
+            connection.Dispose();
+            throw;
+        }
+    }
+
+    private async Task DeclareQueuesAsync(IChannel channel, CancellationToken cancellationToken)
+    {
+        await channel.QueueDeclareAsync(
+            _queueName,
+            true,
+            false,
+            false,
+            cancellationToken: cancellationToken);
+
+        var retryArgs = new Dictionary<string, object?>
+        {
+            ["x-dead-letter-exchange"] = string.Empty,
+            ["x-dead-letter-routing-key"] = _queueName,
+            ["x-message-ttl"] = (int)_retryDelay.TotalMilliseconds
+        };
+        await channel.QueueDeclareAsync(
+            _retryQueueName,
+            true,
+            false,
+            false,
+            retryArgs,
+            cancellationToken: cancellationToken);
+
+        var failedArgs = new Dictionary<string, object?>
+        {
+            ["x-message-ttl"] = (int)TimeSpan.FromHours(24).TotalMilliseconds
+        };
+        await channel.QueueDeclareAsync(
+            _failedQueueName,
+            true,
+            false,
+            false,
+            failedArgs,
+            cancellationToken: cancellationToken);
     }
 
     private async Task StartConsumerAsync(CancellationToken cancellationToken)
@@ -218,7 +229,7 @@ public partial class RabbitMqConsumerService : BackgroundService
             {
                 _logger.LogInformation("Debouncing chosen VolumeRenderChanged message at {UpdateDate:o} to be IGNORED",
                     msg.UpdateDate);
-                return _channel!.BasicAckAsync(msg.DeliveryTag, false, ct);
+                return ConsumerChannel.BasicAckAsync(msg.DeliveryTag, false, ct);
             },
             _logger,
             cancellationToken);
@@ -237,12 +248,12 @@ public partial class RabbitMqConsumerService : BackgroundService
             {
                 _logger.LogInformation("Debouncing chosen VolumeCaptureChanged message at {UpdateDate:o} to be IGNORED",
                     msg.UpdateDate);
-                return _channel!.BasicAckAsync(msg.DeliveryTag, false, ct);
+                return ConsumerChannel.BasicAckAsync(msg.DeliveryTag, false, ct);
             },
             _logger,
             cancellationToken);
 
-        var consumer = new AsyncEventingBasicConsumer(_channel!);
+        var consumer = new AsyncEventingBasicConsumer(ConsumerChannel);
         consumer.ReceivedAsync += async (_, deliveryEvent) =>
         {
             try
@@ -270,7 +281,7 @@ public partial class RabbitMqConsumerService : BackgroundService
                     eventHeaderAttempt, _maxRetryAttempts, httpRequest, urlSuffix,
                     eventMessage.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
-                var pending = new PendingMessage(
+                var pendingMessage = new PendingMessage(
                     deliveryEvent.DeliveryTag,
                     eventBody,
                     eventHeaderAttempt,
@@ -281,13 +292,13 @@ public partial class RabbitMqConsumerService : BackgroundService
                 switch (deviceEventType)
                 {
                     case DeviceEventType.VolumeRenderChanged when _renderDebouncer != null:
-                        await _renderDebouncer!.EnqueueAsync(pending);
+                        await _renderDebouncer!.EnqueueAsync(pendingMessage);
                         _logger.LogInformation("Enqueued {Type} message at {UpdateDate:o} for debounce.",
                             deviceEventType,
                             updateDate);
                         break;
                     case DeviceEventType.VolumeCaptureChanged when _captureDebouncer != null:
-                        await _captureDebouncer!.EnqueueAsync(pending);
+                        await _captureDebouncer!.EnqueueAsync(pendingMessage);
                         _logger.LogInformation("Enqueued {Type} message at {UpdateDate:o} for debounce.",
                             deviceEventType,
                             updateDate);
@@ -298,7 +309,7 @@ public partial class RabbitMqConsumerService : BackgroundService
                     case DeviceEventType.DefaultRenderChanged:
                     case DeviceEventType.DefaultCaptureChanged:
                     default:
-                        await ProcessMessageAsync(pending, cancellationToken);
+                        await ProcessMessageAsync(pendingMessage, cancellationToken);
                         break;
                 }
             }
@@ -326,7 +337,7 @@ public partial class RabbitMqConsumerService : BackgroundService
             }
         };
 
-        await _channel!.BasicConsumeAsync(
+        await ConsumerChannel.BasicConsumeAsync(
             _queueName,
             false,
             consumer,
@@ -440,7 +451,7 @@ public partial class RabbitMqConsumerService : BackgroundService
 
         if (result.Success)
         {
-            await _channel!.BasicAckAsync(msg.DeliveryTag, false, ct);
+            await ConsumerChannel.BasicAckAsync(msg.DeliveryTag, false, ct);
             _logger.LogInformation("Message processed successfully on attempt {Attempt}", msg.Attempt);
         }
         else
@@ -448,7 +459,7 @@ public partial class RabbitMqConsumerService : BackgroundService
             if (msg.Attempt < _maxRetryAttempts)
             {
                 await PublishWithAttemptAsync(_retryQueueName, msg.Body, msg.Attempt + 1, ct);
-                await _channel!.BasicAckAsync(msg.DeliveryTag, false, ct);
+                await ConsumerChannel.BasicAckAsync(msg.DeliveryTag, false, ct);
                 _logger.LogWarning(
                     "Attempt {Attempt} failed. Scheduled retry attempt {NextAttempt} after {Delay}s. Reason: {Reason}",
                     msg.Attempt, msg.Attempt + 1, _retryDelay.TotalSeconds, result.ErrorReason);
@@ -456,7 +467,7 @@ public partial class RabbitMqConsumerService : BackgroundService
             else
             {
                 await PublishWithAttemptAsync(_failedQueueName, msg.Body, msg.Attempt, ct);
-                await _channel!.BasicAckAsync(msg.DeliveryTag, false, ct);
+                await ConsumerChannel.BasicAckAsync(msg.DeliveryTag, false, ct);
                 _logger.LogError("Attempt {Attempt} (max) failed. Routed to failed queue. Reason: {Reason}",
                     msg.Attempt, result.ErrorReason);
             }
