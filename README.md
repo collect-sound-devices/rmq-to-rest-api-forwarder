@@ -125,10 +125,10 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
   - **.NET 8 Generic Host Template** builds Windows Console App or Windows Service.
   - **RabbitMQ.Client** library for interacting with RabbitMQ.
   - **NLog** logging library for .NET.
-  - Distributed as a Docker container, see `docker-compose.yml`. The respactive images are built via GitHub Actions CI/CD pipeline
-    and regularary published to GitHub Container Registry.
+  - Distributed as a Docker container, see `docker-compose.yml`. The respective images are built via GitHub Actions CI/CD pipeline
+    and regularly published to GitHub Container Registry.
 - RabbitMQ:
-  - Distributed as a Docker container, see an Official RabbitMQ Docker image and `docker-compose.yml`.
+  - Distributed as a Docker container, see an official RabbitMQ Docker image and `docker-compose.yml`.
 
 ## Installation
 
@@ -155,15 +155,14 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 
     ```powershell
     # Publish with the included publish profile
-    dotnet publish "Projects/RmqToRestApiForwarder/RmqToRestApiForwarder.csproj"
-        -c Release -p:PublishProfile=WinX64
+    dotnet publish "Projects/RmqToRestApiForwarder/RmqToRestApiForwarder.csproj" -c Release -p:PublishProfile=WinX64
     ```
 
 4. Podman vs Docker.<br>See: [PODMAN-vs-DOCKER.md](https://github.com/collect-sound-devices/rmq-to-rest-api-forwarder/blob/HEAD/PODMAN-vs-DOCKER.md)
 
 ## Changelog
 - 2026-04-19: .NET 8 -> .NET 10 upgrade
-- 2026-02-28: Repository moved to `collect-sound-devices`. Documentaion improvements: fixes, clarifications, diagrams
+- 2026-02-28: Repository moved to `collect-sound-devices`. Documentation improvements: fixes, clarifications, diagrams
 - 2025-12-18: Switched MSBuild inline tasks to RoslynCodeTaskFactory for cross-platform builds (Windows/Linux).
 - 2025-12-18: Replaced legacy tasks with inline regex and zip implementations; fixed warnings and improved Docker publish flow.
 
