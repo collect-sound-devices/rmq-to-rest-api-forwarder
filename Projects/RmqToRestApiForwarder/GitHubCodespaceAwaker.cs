@@ -1,11 +1,16 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
 namespace RmqToRestApiForwarder;
 
-public class GitHubCodespaceAwaker(IOptions<GitHubCodespaceSettings> codespaceSettings, CryptService cryptService, ILogger<GitHubCodespaceAwaker> logger)
+public class GitHubCodespaceAwaker(
+    IOptions<GitHubCodespaceSettings> codespaceSettings,
+    CryptService cryptService,
+    IHttpClientFactory httpClientFactory,
+    ILogger<GitHubCodespaceAwaker> logger)
 {
     private enum RequestState
     {
@@ -28,6 +33,7 @@ public class GitHubCodespaceAwaker(IOptions<GitHubCodespaceSettings> codespaceSe
 
     // Atomic compare-and-set helper
 
+    [SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging")]
     public async Task Awake(CancellationToken cancellationToken)
     {
         if (State != RequestState.Idle)
@@ -47,7 +53,7 @@ public class GitHubCodespaceAwaker(IOptions<GitHubCodespaceSettings> codespaceSe
 
         try
         {
-            using var httpClient = new HttpClient();
+            using var httpClient = httpClientFactory.CreateClient();
             httpClient.DefaultRequestHeaders.Add("Authorization", authorizationValue);
             httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
             httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("rmq-to-rest-api-forwarder", "1.0"));
