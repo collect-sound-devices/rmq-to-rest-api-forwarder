@@ -11,6 +11,7 @@ Released on $date$
 ~~~
 
 ## Change
+- .NET 8 -> .NET 10 upgrade
 - README: improvements, clarifications, diagrams
 - appsettings.Docker.json removed. The Docker-specific environment variables are now directly in the deployed docker-compose.yml
 
