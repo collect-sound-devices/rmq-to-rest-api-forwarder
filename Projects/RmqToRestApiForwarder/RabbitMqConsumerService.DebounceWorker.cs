@@ -13,6 +13,41 @@ public partial class RabbitMqConsumerService
         DateTime UpdateDate
     );
 
+    private void InitializeDebouncers((string render, string capture) names, CancellationToken cancellationToken)
+    { 
+        _renderDebouncer = CreateDebouncer(names.render, cancellationToken);
+        _captureDebouncer = CreateDebouncer(names.capture, cancellationToken);
+    }
+
+
+    private DebounceWorker CreateDebouncer(string eventName, CancellationToken cancellationToken)
+    {
+        return new DebounceWorker(
+            eventName,
+            _volumeDebounceWindow,
+            (msg, ct) => ProcessDebouncedMessageAsync(eventName, msg, ct),
+            (msg, ct) => IgnoreDebouncedMessageAsync(eventName, msg, ct),
+            _logger,
+            cancellationToken);
+    }
+
+    private async Task ProcessDebouncedMessageAsync(string eventName, PendingMessage message, CancellationToken ct)
+    {
+        _logger.LogInformation(
+            "Debouncing chosen {message.} message at {UpdateDate:o} to be PROCESSED",
+            eventName,
+            message.UpdateDate);
+        await ProcessMessageAsync(message, ct);
+    }
+
+    private ValueTask IgnoreDebouncedMessageAsync(string eventName, PendingMessage message, CancellationToken ct)
+    {
+        _logger.LogInformation(
+            "Debouncing chosen {EventName} message at {UpdateDate:o} to be IGNORED",
+            eventName,
+            message.UpdateDate);
+        return ConsumerChannel.BasicAckAsync(message.DeliveryTag, false, ct);
+    }
     private sealed class DebounceWorker
     {
         private readonly string _name;
