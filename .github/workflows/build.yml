@@ -70,15 +70,14 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1
 
-    - name: Restore NuGets
-      run: nuget restore RmqToRestApiForwarder.sln
-
     - name: Build with MSBuild
       run: |
         msbuild /p:Configuration=Release /target:Rebuild -restore
+        # The publishing is not necessary anymore, because distributed via Docker
         # dotnet publish "Projects/RmqToRestApiForwarder/RmqToRestApiForwarder.csproj" -c Release -p:PublishProfile=WinX64 -v:detailed
 
     - name: Upload entire artifacts directory
+      # Release notes and compose are placed to the artifacts directory, we need it.
       uses: actions/upload-artifact@v4
       with:
         name: Artifacts
