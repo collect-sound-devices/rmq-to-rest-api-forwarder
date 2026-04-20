@@ -132,13 +132,13 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 
 ## Installation
 
-1. Install Docker Desktop on the Sound Windows Agent Windows machine
-2. Download `docker-compose.yml` and release notes `RmqToRestApiForwarder-Release-Notes.md` from the latest release assets [Release](https://github.com/collect-sound-devices/rmq-to-rest-api-forwarder/releases/latest) into a rollout folder.
+1. Install Docker Desktop on the target machine
+2. Download `docker-compose.yml` (and optionally release notes `RmqToRestApiForwarder-Release-Notes.md`) from the latest release assets [Release](https://github.com/collect-sound-devices/rmq-to-rest-api-forwarder/releases/latest) into a rollout folder.
 3. Create a `logs` subfolder there.
-4. Use docker-compose to bring the RabbitMQ and rmq-to-rest-api-forwarder containers up on the host machine:<br>
+4. Use `docker compose` to bring the RabbitMQ and rmq-to-rest-api-forwarder containers up on the host machine:<br>
    Open a PowerShell prompt in the rollout folder and run:
      ```powershell
-     docker-compose up -d
+     docker compose up -d
      ```
 
 ## Developer Environment: How to Build and Run (Windows)
@@ -158,7 +158,8 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
     dotnet publish "Projects/RmqToRestApiForwarder/RmqToRestApiForwarder.csproj" -c Release -p:PublishProfile=WinX64
     ```
 
-4. Podman vs Docker.<br>See: [PODMAN-vs-DOCKER.md](https://github.com/collect-sound-devices/rmq-to-rest-api-forwarder/blob/HEAD/PODMAN-vs-DOCKER.md)
+4. Podman vs Docker.<br>
+See: [PODMAN-vs-DOCKER.md](https://github.com/collect-sound-devices/rmq-to-rest-api-forwarder/blob/HEAD/PODMAN-vs-DOCKER.md)
 
 ## Changelog
 - 2026-04-19: .NET 8 -> .NET 10 upgrade
