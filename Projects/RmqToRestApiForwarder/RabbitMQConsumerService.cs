@@ -337,28 +337,10 @@ public partial class RabbitMqConsumerService : BackgroundService
 
     private static int GetAttempt(IDictionary<string, object?>? headers)
     {
-        if (headers == null) return 1;
-        if (!headers.TryGetValue(AttemptHeader, out var raw)) return 1;
-        try
-        {
-            switch (raw)
-            {
-                case byte[] bytes:
-                {
-                    var asString = Encoding.UTF8.GetString(bytes);
-                    if (int.TryParse(asString, out var parsed) && parsed > 0)
-                        return parsed;
-                    break;
-                }
-                case string s when int.TryParse(s, out var parsed2) && parsed2 > 0:
-                    return parsed2;
-            }
-        }
-        catch
-        {
-            // ignored
-        }
-
+        if (headers == null || !headers.TryGetValue(AttemptHeader, out var raw))
+            return 1;
+        if (raw is byte[] bytes && int.TryParse(Encoding.UTF8.GetString(bytes), out var n) && n > 0)
+            return n;
         return 1;
     }
 
