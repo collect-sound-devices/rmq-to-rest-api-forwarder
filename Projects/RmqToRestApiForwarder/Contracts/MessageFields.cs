@@ -9,6 +9,7 @@ public static class MessageFields
 
     public enum DeviceEventType : byte
     {
+        // ReSharper disable UnusedMember.Global
         Confirmed = 0,
         Discovered = 1,
         Detached = 2,
@@ -16,6 +17,7 @@ public static class MessageFields
         VolumeCaptureChanged = 4,
         DefaultRenderChanged = 5,
         DefaultCaptureChanged = 6
+        // ReSharper restore UnusedMember.Global
     }
 
 }

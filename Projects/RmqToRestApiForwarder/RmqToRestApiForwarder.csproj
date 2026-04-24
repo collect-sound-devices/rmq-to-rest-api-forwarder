@@ -17,6 +17,7 @@
     <Import Project="$(MSBuildThisFileDirectory)..\..\msbuildLib\Ed.CSharp.targets" />
 
     <ItemGroup>
+        <AdditionalFiles Include="CodeMetricsConfig.txt" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.6" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.6" />
         <PackageReference Include="NLog.Extensions.Logging" Version="6.1.2" />

@@ -8,7 +8,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		.gitignore = .gitignore
 		.github\workflows\build.yml = .github\workflows\build.yml
-		.qodana\profiles\inspection-profile01.xml = .qodana\profiles\inspection-profile01.xml
 		qodana.yaml = qodana.yaml
 	EndProjectSection
 EndProject
