@@ -81,65 +81,94 @@ public partial class RabbitMqConsumerService
         {
             return _queue.Writer.WriteAsync(message, _stopToken);
         }
-
-        private async Task RunAsync()
+        private static async Task<PendingMessage?> GetNextMessageAsync(
+            PendingMessage? nextMessage,
+            ChannelReader<PendingMessage> reader,
+            CancellationToken cancellationToken)
         {
-            var reader = _queue.Reader;
-            PendingMessage? carry = null;
-
-            while (!_stopToken.IsCancellationRequested)
+            if (nextMessage != null)
             {
-                PendingMessage head;
-                if (carry != null)
-                {
-                    head = carry;
-                    carry = null;
-                }
-                else
+                return nextMessage;
+            }
+            try
+            {
+                return await reader.ReadAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return null; // Signal to break the loop
+            }
+        }
+
+        private async Task<PendingMessage?> ProcessDebounceWindowAsync(
+            PendingMessage currentMessage,
+            ChannelReader<PendingMessage> reader)
+        {
+            var latestMessage = currentMessage;
+            PendingMessage? nextMessage = null;
+            while (reader.TryRead(out var next))
+            {
+                if ((next.UpdateDate - latestMessage.UpdateDate) <= _window) // within the time window?
                 {
                     try
                     {
-                        head = await reader.ReadAsync(_stopToken);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-                }
-
-                var last = head;
-
-                while (reader.TryRead(out var next))
-                {
-                    if ((next.UpdateDate - last.UpdateDate) <= _window) // within the time window?
-                    {
-                        await _ignoreMessageAsync(last, _stopToken); // ignore previous last
-                        last = next; // keep the most recent within the window
-                        continue;
-                    }
-
-                    // Next is outside the window; keep it for next iteration
-                    carry = next;
-                    break;
-                }
-
-                // Process the chosen last message
-                try
-                {
-                    await _processMessageAsync(last, _stopToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "[{Name}] Error while processing debounced message.", _name);
-                    try
-                    {
-                        await _ignoreMessageAsync(last, _stopToken);
+                        await _ignoreMessageAsync(latestMessage, _stopToken);
                     }
                     catch
                     {
-                        /* ignored */
+                        // Ignored
                     }
+                    
+                    latestMessage = next; // keep the most recent within the window
+                    continue;
                 }
+                // Next is outside the window; keep it for next iteration
+                nextMessage = next;
+                break;
+            }
+            return nextMessage;
+        }
+        private async Task ProcessMessageSafelyAsync(PendingMessage message)
+        {
+            try
+            {
+                await _processMessageAsync(message, _stopToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[{Name}] Error or stop while processing debounced message.", _name);
+                try
+                {
+                    await _ignoreMessageAsync(message, _stopToken);
+                }
+                catch
+                {
+                    // Ignored
+                }
+            }
+        }
+        private async Task RunAsync()
+        {
+            var reader = _queue.Reader;
+            PendingMessage? nextMessage = null;
+            try
+            {
+                while (!_stopToken.IsCancellationRequested)
+                {
+                    var currentMessage = await GetNextMessageAsync(nextMessage, reader, _stopToken);
+                    if (currentMessage == null)
+                    {
+                        break; // Exit the loop if cancellation is requested
+                    }
+                    // Process messages within the debounce window
+                    nextMessage = await ProcessDebounceWindowAsync(currentMessage, reader);
+                    // Process the chosen latest message
+                    await ProcessMessageSafelyAsync(currentMessage);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Gracefully exit on cancellation
             }
         }
     }
