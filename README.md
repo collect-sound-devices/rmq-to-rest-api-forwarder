@@ -132,7 +132,7 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 ## Technologies Used
 
 - RmqToRestApiForwarder:
-  - **.NET 8 Generic Host Template** builds Windows Console App or Windows Service.
+  - **.NET Generic Host Template** builds Windows Console App or Windows Service.
   - **RabbitMQ.Client** library for interacting with RabbitMQ.
   - **NLog** logging library for .NET.
   - Distributed as a Docker container, see `docker-compose.yml`. The respective images are built via GitHub Actions CI/CD pipeline
