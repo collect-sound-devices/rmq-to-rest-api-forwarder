@@ -1,15 +1,15 @@
 namespace RmqToRestApiForwarder;
 
+// Bound options classes must public read-write properties
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 public record RabbitMqServerSettings
 {
     public string HostName { get; init; } = "localhost";
     public string QueueName { get; init; } = "sdr_queue";
     public string UserName { get; init; } = "guest";
     public string Password { get; init; } = "guest";
-    // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
     public int Port { get; init; } = 5671;
     public int NetworkRecoveryIntervalInSeconds { get; init; } = 3;
-    // ReSharper restore AutoPropertyCanBeMadeGetOnly.Global
 }
 
 public record RabbitMqMessageDeliverySettings
@@ -35,3 +35,4 @@ public record GitHubCodespaceSettings
     public string Token { get; init; } = string.Empty;
     public int TimeoutSeconds { get; init; } = 30;
 }
+// ReSharper restore AutoPropertyCanBeMadeGetOnly.Global

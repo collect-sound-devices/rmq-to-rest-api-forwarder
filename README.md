@@ -1,10 +1,12 @@
 # rmq-to-rest-api-forwarder (RmqToRestApiForwarder)
 
-A forwarding microservice for sound messages; see [WinSoundScanner](https://github.com/collect-sound-devices/win-sound-scanner-go) and [LinuxSoundScanner](https://github.com/collect-sound-devices/linux-sound-scanner).
+A forwarding microservice for sound messages in the RabbitMQ-based message workflow between scanners and a REST API.
+RmqToRestApiForwarder is similar to a KafkaToRestApiForwarder microservice, leveraging the alternative Apache Kafka-based workflow.
 
 ## Motivation
 
-RmqToRestApiForwarder's purpose is to forward the RabbitMQ messages produced by Linux and Windows Sound Scanners to a REST API endpoint.
+RmqToRestApiForwarder's purpose is to forward and deliver the RabbitMQ messages produced by Windows and Linux Sound Scanners (see [WinSoundScanner](https://github.com/collect-sound-devices/win-sound-scanner-go) and [LinuxSoundScanner](https://github.com/collect-sound-devices/linux-sound-scanner) )
+to the audio device repository REST API, see [AudioDeviceRepoServer](https://github.com/collect-sound-devices/[DeviceRepositoryServer](https://github.com/collect-sound-devices/audio-device-repo-server))
 
 ## Place in *collect-sound-devices* Architecture
 
@@ -13,37 +15,45 @@ RmqToRestApiForwarder's purpose is to forward the RabbitMQ messages produced by 
 ```mermaid
 flowchart BT
 
-classDef dottedBox fill:transparent, fill-opacity:0.55, stroke-dasharray:10 8, stroke-width:2px;
-classDef stressedBox fill:#f0f0f0,fill-opacity:0.2,stroke-width:4px;
-classDef invisibleNode fill:transparent, stroke:transparent;
+    classDef dottedBox fill:transparent, fill-opacity:0.55, stroke-dasharray:10 8, stroke-width:2px;
+    classDef stressedBox fill:#f0f0f0,fill-opacity:0.2,stroke-width:4px;
+    classDef invisibleNode fill:transparent, stroke:transparent;
 
-coreAudioApi["Core Audio<br>(Windows API) or<br>Pulse Lib<br>(Linux PulseAudio)"]
+    coreAudioApi["Core Audio<br>(Windows API) or<br>Pulse Lib<br>(Linux PulseAudio)"]
 
-subgraph scannerService["win-sound-scanner-go or linux-sound-scanner"]
-    invisible1["<br><br><br><br><br>"]
     class invisible1 invisibleNode
     winSoundScannerService["WinSoundScanner<br>(Windows Service) or<br>LinuxSoundScanner<br>(Docker Container)"]
     invisible2["<br><br><br><br><br>"]
     class invisible2 invisibleNode
-end
-class scannerService dottedBox
 
-subgraph requestQueueMicroservice["<br>"]
-    requestQueue[("Request Queue<br>(RabbitMQ channel)")]
-    rabbitMqRestForwarder["RmqToRestApiForwarder<br>(.NET microservice)"]
-end
-class requestQueueMicroservice stressedBox
+    subgraph eventTopicKafkaMicroservice["<br>"]
+        eventTopic[("Event Topic<br>(Kafka topic)")]
+        class eventTopic dottedBox
+        kafkaRestForwarder["KafkaToRestApiForwarder<br>(.NET microservice)"]
+        class kafkaRestForwarder dottedBox
+    end
+    class eventTopicKafkaMicroservice dottedBox
 
-deviceRepositoryApi["Device Repository Server<br>(REST API)"]
+    subgraph requestQueueRabbitMqMicroservice["<br>"]
+        requestQueue[("Request Queue<br>(RabbitMQ channel)")]
+        rabbitMqRestForwarder["RmqToRestApiForwarder<br>(.NET microservice)"]
+    end
+    class requestQueueRabbitMqMicroservice stressedBox
 
-winSoundScannerService --> |Access device| coreAudioApi
-coreAudioApi -->|Device events| winSoundScannerService
+    deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 
-winSoundScannerService -->|Publish request messages| requestQueue
+    winSoundScannerService --> |Access device| coreAudioApi
+    coreAudioApi --->|Device events| winSoundScannerService
 
-requestQueue -->|Fetch request messages| rabbitMqRestForwarder
-rabbitMqRestForwarder --> |Detect request messages| requestQueue
-rabbitMqRestForwarder -->|POST/PUT requests| deviceRepositoryApi
+    winSoundScannerService -..-> |Publish device events| eventTopic
+    winSoundScannerService --->|Publish request messages| requestQueue
+
+    eventTopic -->|Fetch events| kafkaRestForwarder
+    kafkaRestForwarder --> |Detect events| eventTopic
+    kafkaRestForwarder -..->|POST/PUT requests| deviceRepositoryApi
+    requestQueue -->|Fetch messages| rabbitMqRestForwarder
+    rabbitMqRestForwarder --> |Detect messages| requestQueue
+    rabbitMqRestForwarder --->|POST/PUT requests| deviceRepositoryApi
 ```
 </div>
 
@@ -122,7 +132,7 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 ## Technologies Used
 
 - RmqToRestApiForwarder:
-  - **.NET 8 Generic Host Template** builds Windows Console App or Windows Service.
+  - **.NET Generic Host Template** builds Windows Console App or Windows Service.
   - **RabbitMQ.Client** library for interacting with RabbitMQ.
   - **NLog** logging library for .NET.
   - Distributed as a Docker container, see `docker-compose.yml`. The respective images are built via GitHub Actions CI/CD pipeline

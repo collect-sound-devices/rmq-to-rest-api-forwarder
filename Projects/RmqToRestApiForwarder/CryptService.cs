@@ -49,6 +49,7 @@ public class CryptService(ILogger<CryptService> logger)
         return originalText;
     }
 
+    // ReSharper disable once MemberCanBeMadeStatic.Local
     private string Decrypt(string cipherText, string passphrase)
     {
         if (string.IsNullOrEmpty(cipherText))

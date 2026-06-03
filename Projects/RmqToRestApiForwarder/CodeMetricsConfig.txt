@@ -1,0 +1,4 @@
+# Qodana/Roslyn code metrics thresholds.
+# CA1502 reports methods whose cyclomatic complexity is greater than this value.
+CA1502: 7
+

@@ -23,6 +23,13 @@ csharp_style_prefer_utf8_string_literals = true:suggestion
 csharp_style_var_elsewhere = true:suggestion
 csharp_style_var_for_built_in_types = true:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
+
+# Roslyn: CyclomaticComplexityInspection enabled with threshold of 7 (see CodeMetricConfig.txt)
+dotnet_diagnostic.CA1502.severity = error
+
+# Threshold for JetBrains/Qodana CyclomaticComplexityInspection
+dotnet_code_metrics.cyclomatic_complexity_threshold  = 7
+
 dotnet_naming_rule.private_static_readonly_rule.import_to_resharper = True
 dotnet_naming_rule.private_static_readonly_rule.resharper_description = Static readonly fields (private)
 dotnet_naming_rule.private_static_readonly_rule.resharper_guid = 15b5b1f1-457c-4ca6-b278-5615aedc07d3

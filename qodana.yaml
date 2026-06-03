@@ -9,14 +9,23 @@
 #################################################################################
 version: "1.0"
 
-#Specify inspection profile for code analysis
-profile:
-  #  name: qodana.starter
-  path: .qodana/profiles/inspection-profile01.xml
+# Analyze the .NET solution in this repository.
+dotnet:
+  solution: RmqToRestApiForwarder.sln
 
-#Enable inspections
-include:
-  - name: CyclomaticComplexityJS
+# Keep the default .NET checks and make code metrics explicit.
+profile:
+  base:
+    name: qodana.recommended
+  inspections:
+    - inspection: CyclomaticComplexityInspection
+      enabled: true
+      options:
+        Threshold: 4
+    - inspection: CA1502
+      enabled: true
+    - inspection: CA1505
+      enabled: true
 
 #Disable inspections
 exclude:
@@ -29,8 +38,11 @@ exclude:
       - .editorconfig
       - .github\workflows
       - deploy-via-docker
+      - artifacts
+      - msbuildLib
       - Projects\RmqToRestApiForwarder\appsettings.Docker.json
       - Projects\RmqToRestApiForwarder\appsettings.json
+#      - Projects\RmqToRestApiForwarder\ConfigurationRecords.cs
       - docker-compose.yml
       - PODMAN-vs-DOCKER.md
       - RmqToRestApiForwarder-Release-Notes.md
@@ -54,5 +66,7 @@ exclude:
 #    fresh: 70
 #    total: 50
 
-#Specify Qodana linter for analysis (Applied in CI/CD pipeline)
-linter: jetbrains/qodana-js:2025.3
+# Run Qodana for .NET in native mode so Roslyn-based metrics are analyzed
+# in the same environment as the project build.
+linter: qodana-dotnet
+withinDocker: false
