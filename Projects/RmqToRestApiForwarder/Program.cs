@@ -1,6 +1,7 @@
 using NLog;
 using NLog.Extensions.Logging;
 using RmqToRestApiForwarder;
+using RmqToRestApiForwarder.Utils;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 var builder = Host.CreateDefaultBuilder(args)
@@ -22,6 +23,8 @@ var builder = Host.CreateDefaultBuilder(args)
         services.Configure<RabbitMqMessageDeliverySettings>(config.GetSection("RabbitMQ:MessageDelivery"));
         services.Configure<ApiBaseUrlSettings>(config.GetSection("ApiBaseUrl"));
         services.Configure<GitHubCodespaceSettings>(config.GetSection("GitHubCodespace"));
+
+        services.AddHostedService<VersionStartupLogger>();
 
         services.AddSingleton<CryptService>();
         services.AddHttpClient();
