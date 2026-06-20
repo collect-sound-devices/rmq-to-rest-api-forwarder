@@ -36,13 +36,15 @@ public partial class RabbitMqConsumerService : BackgroundService
     private readonly string _retryQueueName;
     private readonly TimeSpan _volumeDebounceWindow;
     private IChannel ConsumerChannel => _channel ?? throw new InvalidOperationException("RabbitMQ channel is not initialized.");
-    private DebounceWorker? _captureDebouncer;
     private IChannel? _channel;
 
     private IConnection? _connection;
 
     // Debounce workers for sound-volume events
-    private DebounceWorker? _renderDebouncer;
+
+    private DebounceWorker<PendingMessage>? _captureDebouncer;
+    private DebounceWorker<PendingMessage>? _renderDebouncer;
+
 
     public RabbitMqConsumerService(IOptions<RabbitMqServerSettings> rmqServerSettings,
         IOptions<RabbitMqMessageDeliverySettings> rmqMessageDeliverySettings,
