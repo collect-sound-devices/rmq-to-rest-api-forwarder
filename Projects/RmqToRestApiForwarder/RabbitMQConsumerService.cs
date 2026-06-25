@@ -25,7 +25,9 @@ public partial class RabbitMqConsumerService : BackgroundService
     private readonly string _apiEndpoint;
     private readonly string _apiTarget;
     private readonly GitHubCodespaceAwaker _codespaceAwaker;
+#pragma warning disable CA1859
     private readonly IConnectionFactory _connectionFactory;
+#pragma warning restore CA1859
     private readonly string _failedQueueName;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<RabbitMqConsumerService> _logger;
@@ -381,7 +383,9 @@ public partial class RabbitMqConsumerService : BackgroundService
             using var httpClient = _httpClientFactory.CreateClient();
             using var jsonContent = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
 
+#pragma warning disable CA1862
             var response = httpMethod.ToUpperInvariant() == "PUT"
+#pragma warning restore CA1862
                 ? await httpClient.PutAsync(_apiEndpoint + urlSuffix, jsonContent, cancellationToken)
                 : await httpClient.PostAsync(_apiEndpoint + urlSuffix, jsonContent, cancellationToken);
 
@@ -395,7 +399,10 @@ public partial class RabbitMqConsumerService : BackgroundService
         {
             _logger.LogWarning("Caught {ExceptionType} exception: {Message}.",
                 ex.GetType().Name, ex.Message);
-            if (_apiTarget == nameof(ApiBaseUrlSettings.Codespace)) await _codespaceAwaker.Awake(cancellationToken);
+            if (_apiTarget == nameof(ApiBaseUrlSettings.Codespace))
+            {
+                await _codespaceAwaker.Awake(cancellationToken);
+            }
 
             var reason = $"Exception: {ex.Message}";
             return new ProcessingResult(false, reason);
