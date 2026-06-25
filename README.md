@@ -172,6 +172,7 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 See: [PODMAN-vs-DOCKER.md](https://github.com/collect-sound-devices/rmq-to-rest-api-forwarder/blob/HEAD/PODMAN-vs-DOCKER.md)
 
 ## Changelog
+- 2026-06-25: Extra API service is used to start an Audio Repository API Codespace
 - 2026-06-18: Logging runtime version, build information and operating system details at startup
 - 2026-04-19: .NET 8 -> .NET 10 upgrade
 - 2026-02-28: Repository moved to `collect-sound-devices`. Documentation improvements: fixes, clarifications, diagrams

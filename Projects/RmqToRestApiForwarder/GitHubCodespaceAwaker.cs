@@ -1,14 +1,13 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
 namespace RmqToRestApiForwarder;
 
+[SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging")]
 public class GitHubCodespaceAwaker(
     IOptions<GitHubCodespaceSettings> codespaceSettings,
-    CryptService cryptService,
     IHttpClientFactory httpClientFactory,
     ILogger<GitHubCodespaceAwaker> logger)
 {
@@ -24,16 +23,12 @@ public class GitHubCodespaceAwaker(
     private readonly Lock _stateLock = new();
     private Timer? _resetTimer;
 
-    // Thread-safe state property
     private RequestState State
     {
         get { lock (_stateLock) return field; }
         set { lock (_stateLock) field = value; }
     } = RequestState.Idle;
 
-    // Atomic compare-and-set helper
-
-    [SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging")]
     public async Task Awake(CancellationToken cancellationToken)
     {
         if (State != RequestState.Idle)
@@ -45,24 +40,23 @@ public class GitHubCodespaceAwaker(
 
         logger.LogInformation("Codespace awake sequence started. State -> Requested");
 
-        const string shortestPassword = "my.shortest.password";
-
-        var codespaceName = cryptService.TryDecryptOrReturnOriginal(codespaceSettings.Value.CodespaceName, shortestPassword);
-        var urlExpanded = codespaceSettings.Value.StartUrl.Replace("{codespace}", codespaceName, StringComparison.OrdinalIgnoreCase);
-        var authorizationValue = "Bearer " + cryptService.TryDecryptOrReturnOriginal(codespaceSettings.Value.Token, shortestPassword);
+        var codespaceName = codespaceSettings.Value.CodespaceName;
+        var startUrl = codespaceSettings.Value.StartUrl;
+        if (string.IsNullOrWhiteSpace(codespaceName) || string.IsNullOrWhiteSpace(startUrl))
+        {
+            logger.LogWarning("Codespace awake request skipped because GitHubCodespace settings are incomplete.");
+            State = RequestState.Idle;
+            return;
+        }
 
         try
         {
             using var httpClient = httpClientFactory.CreateClient();
-            httpClient.DefaultRequestHeaders.Add("Authorization", authorizationValue);
-            httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
-            httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("rmq-to-rest-api-forwarder", "1.0"));
-
-            var payload = JsonSerializer.Serialize(new { codespace_name = codespaceName });
+            var payload = JsonSerializer.Serialize(new { key = "abc", query = codespaceName });
             using var jsonContent = new StringContent(payload, Encoding.UTF8, "application/json");
 
-            logger.LogInformation("Sending GitHub Codespace start request for '{CodespaceName}'", codespaceName);
-            var response = await httpClient.PostAsync(urlExpanded, jsonContent, cancellationToken);
+            logger.LogInformation("Sending Codespace start request for '{CodespaceName}'", codespaceName);
+            var response = await httpClient.PostAsync(startUrl, jsonContent, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -77,10 +71,10 @@ public class GitHubCodespaceAwaker(
                     logger.LogInformation(readEx, "Failed reading error response body");
                 }
                 var reason = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
-                logger.LogWarning("GitHub Codespace start request failed: {Reason}. Body: {Body}", reason, body);
+                logger.LogWarning("Codespace start request failed: {Reason}. Body: {Body}", reason, body);
                 throw new Exception(reason);
             }
-            logger.LogInformation("GitHub Codespace start request accepted by server (HTTP {Status}).", (int)response.StatusCode);
+            logger.LogInformation("Codespace start request accepted by server (HTTP {Status}).", (int)response.StatusCode);
         }
         catch (Exception ex)
         {

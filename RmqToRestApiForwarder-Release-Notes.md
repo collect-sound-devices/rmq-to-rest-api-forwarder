@@ -11,6 +11,7 @@ Released on $date$
 ~~~
 
 ## Change
+- The API service `codespace-ctrl` is used to start an Audio Repository API Codespace
 - Generic DebounceWorker, similar to one, used in the KafkaToRestApiForwarder
 - Logging runtime version, build information and operating system details at startup
 - .NET 8 -> .NET 10 upgrade

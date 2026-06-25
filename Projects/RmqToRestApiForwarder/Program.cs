@@ -27,7 +27,6 @@ var builder = Host.CreateDefaultBuilder(args)
         services.AddSingleton<IVersionProvider, VersionProvider>();
         services.AddHostedService<VersionStartupLogger>();
 
-        services.AddSingleton<CryptService>();
         services.AddHttpClient();
         services.AddSingleton<GitHubCodespaceAwaker>();
         services.AddHostedService<RabbitMqConsumerService>();
