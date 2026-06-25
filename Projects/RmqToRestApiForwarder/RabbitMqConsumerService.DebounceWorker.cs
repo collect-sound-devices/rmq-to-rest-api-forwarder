@@ -11,7 +11,7 @@ public partial class RabbitMqConsumerService
         string? HttpMethod,
         string? UrlSuffix,
         DateTime UpdateDate
-    );
+    ) : IHasUpdateDate;
 
     private void InitializeDebouncers((string render, string capture) names, CancellationToken cancellationToken)
     { 
@@ -20,16 +20,15 @@ public partial class RabbitMqConsumerService
     }
 
 
-    private DebounceWorker CreateDebouncer(string eventName, CancellationToken cancellationToken)
+    private DebounceWorker<PendingMessage> CreateDebouncer(string eventName, CancellationToken cancellationToken)
     {
-        return new DebounceWorker(
-            eventName,
+        return new DebounceWorker<PendingMessage>(
             _volumeDebounceWindow,
             (msg, ct) => ProcessDebouncedMessageAsync(eventName, msg, ct),
             (msg, ct) => IgnoreDebouncedMessageAsync(eventName, msg, ct),
-            _logger,
             cancellationToken);
     }
+
 
     private async Task ProcessDebouncedMessageAsync(string eventName, PendingMessage message, CancellationToken ct)
     {
@@ -40,136 +39,128 @@ public partial class RabbitMqConsumerService
         await ProcessMessageAsync(message, ct);
     }
 
-    private ValueTask IgnoreDebouncedMessageAsync(string eventName, PendingMessage message, CancellationToken ct)
+    private async Task IgnoreDebouncedMessageAsync(string eventName, PendingMessage message, CancellationToken ct)
     {
         _logger.LogInformation(
             "Debouncing chosen {EventName} message at {UpdateDate:o} to be IGNORED",
             eventName,
             message.UpdateDate);
-        return ConsumerChannel.BasicAckAsync(message.DeliveryTag, false, ct);
+        await ConsumerChannel.BasicAckAsync(message.DeliveryTag, false, ct);
     }
-    private sealed class DebounceWorker
-    {
-        private readonly string _name;
-        private readonly TimeSpan _window;
-        private readonly Func<PendingMessage, CancellationToken, Task> _processMessageAsync;
-        private readonly Func<PendingMessage, CancellationToken, ValueTask> _ignoreMessageAsync;
-        private readonly ILogger _logger;
 
-        private readonly Channel<PendingMessage> _queue =
-            Channel.CreateUnbounded<PendingMessage>(new UnboundedChannelOptions
-                { SingleReader = true, SingleWriter = false });
+    private sealed class DebounceWorker<TMessage> where TMessage : class, IHasUpdateDate
+    {
+        private readonly TimeSpan _debounceWindow;
+        private readonly Func<TMessage, CancellationToken, Task> _forwardMessageAsync;
+        private readonly Func<TMessage, CancellationToken, Task> _ignoreMessageAsync;
+
+        private readonly Channel<TMessage> _queue =
+            Channel.CreateUnbounded<TMessage>(new UnboundedChannelOptions
+            { SingleReader = true, SingleWriter = false });
 
         private readonly CancellationToken _stopToken;
+        private readonly Task _workerTask;
 
-        public DebounceWorker(string name, TimeSpan window,
-            Func<PendingMessage, CancellationToken, Task> processMessageAsync,
-            Func<PendingMessage, CancellationToken, ValueTask> ignoreMessageAsync,
-            ILogger logger,
+        public DebounceWorker(TimeSpan window,
+            Func<TMessage, CancellationToken, Task> forwardMessageAsync,
+            Func<TMessage, CancellationToken, Task> ignoreMessageAsync,
             CancellationToken stopToken)
         {
-            _name = name;
-            _window = window;
-            _processMessageAsync = processMessageAsync;
+            _debounceWindow = window;
+            _forwardMessageAsync = forwardMessageAsync;
             _ignoreMessageAsync = ignoreMessageAsync;
-            _logger = logger;
             _stopToken = stopToken;
-            _ = Task.Run(RunAsync, stopToken);
+            _workerTask = Task.Run(RunAsync, stopToken);
         }
 
-        public ValueTask EnqueueAsync(PendingMessage message)
+        public void WaitForStop()
+        {
+            _workerTask.Wait(CancellationToken.None);
+        }
+
+        public ValueTask EnqueueAsync(TMessage message)
         {
             return _queue.Writer.WriteAsync(message, _stopToken);
         }
-        private static async Task<PendingMessage?> GetNextMessageAsync(
-            PendingMessage? nextMessage,
-            ChannelReader<PendingMessage> reader,
-            CancellationToken cancellationToken)
-        {
-            if (nextMessage != null)
-            {
-                return nextMessage;
-            }
-            try
-            {
-                return await reader.ReadAsync(cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                return null; // Signal to break the loop
-            }
-        }
 
-        private async Task<PendingMessage?> ProcessDebounceWindowAsync(
-            PendingMessage currentMessage,
-            ChannelReader<PendingMessage> reader)
+        private async Task<(TMessage messageToForward, TMessage? firstMessageAfterWindow)> ChooseMessageToForwardAsync(
+            TMessage firstMessageInWindow,
+            ChannelReader<TMessage> reader)
         {
-            var latestMessage = currentMessage;
-            PendingMessage? nextMessage = null;
-            while (reader.TryRead(out var next))
+            var messageToForward = firstMessageInWindow;
+            TMessage? firstMessageAfterWindow = null;
+            while (reader.TryRead(out var candidateMessage))
             {
-                if ((next.UpdateDate - latestMessage.UpdateDate) <= _window) // within the time window?
+                if ((candidateMessage.UpdateDate - messageToForward.UpdateDate) <= _debounceWindow) // within the time window?
                 {
                     try
                     {
-                        await _ignoreMessageAsync(latestMessage, _stopToken);
+                        await _ignoreMessageAsync(messageToForward, _stopToken);
                     }
                     catch
                     {
                         // Ignored
                     }
-                    
-                    latestMessage = next; // keep the most recent within the window
+
+                    messageToForward = candidateMessage; // keep the most recent within the window
                     continue;
                 }
-                // Next is outside the window; keep it for next iteration
-                nextMessage = next;
+
+                // The candidateMessage is now outside the window; keep it for next iteration
+                firstMessageAfterWindow = candidateMessage;
                 break;
             }
-            return nextMessage;
+
+            return (messageToForward, firstMessageAfterWindow);
         }
-        private async Task ProcessMessageSafelyAsync(PendingMessage message)
-        {
-            try
-            {
-                await _processMessageAsync(message, _stopToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[{Name}] Error or stop while processing debounced message.", _name);
-                try
-                {
-                    await _ignoreMessageAsync(message, _stopToken);
-                }
-                catch
-                {
-                    // Ignored
-                }
-            }
-        }
+
+        // ReSharper disable CognitiveComplexity
         private async Task RunAsync()
         {
             var reader = _queue.Reader;
-            PendingMessage? nextMessage = null;
+            TMessage? firstMessageAfterWindow = null;
             try
             {
                 while (!_stopToken.IsCancellationRequested)
                 {
-                    var currentMessage = await GetNextMessageAsync(nextMessage, reader, _stopToken);
-                    if (currentMessage == null)
+                    TMessage firstMessageInWindow;
+                    if (firstMessageAfterWindow != null)
                     {
-                        break; // Exit the loop if cancellation is requested
+                        firstMessageInWindow = firstMessageAfterWindow;
                     }
-                    // Process messages within the debounce window
-                    nextMessage = await ProcessDebounceWindowAsync(currentMessage, reader);
+                    else
+                    {
+                        try
+                        {
+                            firstMessageInWindow = await reader.ReadAsync(_stopToken);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break; // Exit the loop if cancellation is requested
+                        }
+                    }
+
+                    (var messageToForward, firstMessageAfterWindow) =
+                        await ChooseMessageToForwardAsync(firstMessageInWindow, reader);
+
                     // Process the chosen latest message
-                    await ProcessMessageSafelyAsync(currentMessage);
+                    try
+                    {
+                        await _forwardMessageAsync(messageToForward, _stopToken);
+                    }
+                    catch
+                    {
+                        // Ignored
+                    }
                 }
             }
             catch (OperationCanceledException)
             {
-                // Gracefully exit on cancellation
+                // Just exit on cancellation
             }
         }
+        // ReSharper restore CognitiveComplexity
     }
+
+
 }
