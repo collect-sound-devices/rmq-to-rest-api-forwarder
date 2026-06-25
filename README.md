@@ -72,7 +72,7 @@ flowchart BT
   * A message is routed to a failed queue after the retry max is reached
   * See settings: `RabbitMqMessageDeliverySettings: RetryDelayInSeconds`, `MaxRetryAttempts`.
 
-## Event Forwarding Pattern & Debouncing
+## Message Forwarding Pattern & Debouncing
 
 RmqToRestApiForwarder implements a message forwarding pattern that includes debouncing
 for frequent volume change events and reliable delivery with retry and failed queues.
@@ -100,7 +100,8 @@ subgraph forwarder["RmqToRestApiForwarder"]
     class invisible3 invisibleNode
     B["RMQ Queue"]
     C["RabbitMqConsumerService<br>(BackgroundService)"]
-    D["DebounceWorker"]
+    D["DebounceWorker<br>(render/capture workers)"]
+    F["ProcessMessageAsync<br>(ACK / retry / fail)"]
     E["SendToApiAsync"]
     G["RMQ Retry Queue<br>(.retry)"]
     H["RMQ Failed Queue<br>(.failed)"]
@@ -115,15 +116,16 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
 
     A -->|"Publish HTTP messages"| B
     B -->|"Consume"| C
-    C -->|"Debounce (volume events)"| D
-    C -->|"Direct forward<br>(other events)"| E
-    D -->|"winner message"| E
-    E -->|"POST / PUT attempts"| deviceRepositoryApi
+    C -->|"Enqueue volume events"| D
+    C -->|"Process other events directly"| F
+    D -->|"winner message"| F
+    F -->|"POST / PUT attempt"| E
+    E -->|"HTTP request"| deviceRepositoryApi
 
 
-    E -->|"on failure"| G
+    F -->|"on failure<br>attempts remaining"| G
     G -->|"TTL expires → re-deliver"| B
-    E -->|"max retries exceeded"| H
+    F -->|"max retries exceeded"| H
 ```
 
 </div>
