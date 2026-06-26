@@ -10,6 +10,12 @@ $version$
 Released on $date$
 ~~~
 
+v3.4.3
+--------
+~~~
+Released on 25.06.2026
+~~~
+
 ## Change
 - The API service `codespace-ctrl` is used to start an Audio Repository API Codespace
 - Generic DebounceWorker, similar to one, used in the KafkaToRestApiForwarder
