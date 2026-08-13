@@ -10,8 +10,6 @@ to the audio device repository REST API, see [AudioDeviceRepoServer](https://git
 
 ## Place in *collect-sound-devices* Architecture
 
-<div style="zoom: 0.5;">
-
 ```mermaid
 flowchart BT
 
@@ -19,28 +17,46 @@ flowchart BT
     classDef stressedBox fill:#f0f0f0,fill-opacity:0.2,stroke-width:4px;
     classDef invisibleNode fill:transparent, stroke:transparent;
 
-    coreAudioApi["Core Audio<br>(Windows API) or<br>Pulse Lib<br>(Linux PulseAudio)"]
+    coreAudioApi["Core Audio
+    (Windows API) or
+    Pulse Lib
+    (Linux PulseAudio)"]
 
     class invisible1 invisibleNode
-    winSoundScannerService["WinSoundScanner<br>(Windows Service) or<br>LinuxSoundScanner<br>(Docker Container)"]
-    invisible2["<br><br><br><br><br>"]
+    winSoundScannerService["WinSoundScanner
+    (Windows Service) or
+    LinuxSoundScanner
+    (Docker Container)"]
+    invisible2["
+    
+    
+    
+    
+    "]
     class invisible2 invisibleNode
 
-    subgraph eventTopicKafkaMicroservice["<br>"]
-        eventTopic[("Event Topic<br>(Kafka topic)")]
+    subgraph eventTopicKafkaMicroservice["
+    "]
+        eventTopic[("Event Topic
+        (Kafka topic)")]
         class eventTopic dottedBox
-        kafkaRestForwarder["KafkaToRestApiForwarder<br>(.NET microservice)"]
+        kafkaRestForwarder["KafkaToRestApiForwarder
+        (.NET microservice)"]
         class kafkaRestForwarder dottedBox
     end
     class eventTopicKafkaMicroservice dottedBox
 
-    subgraph requestQueueRabbitMqMicroservice["<br>"]
-        requestQueue[("Request Queue<br>(RabbitMQ channel)")]
-        rabbitMqRestForwarder["RmqToRestApiForwarder<br>(.NET microservice)"]
+    subgraph requestQueueRabbitMqMicroservice["
+    "]
+        requestQueue[("Request Queue
+        (RabbitMQ channel)")]
+        rabbitMqRestForwarder["RmqToRestApiForwarder
+        (.NET microservice)"]
     end
     class requestQueueRabbitMqMicroservice stressedBox
 
-    deviceRepositoryApi["Device Repository Server<br>(REST API)"]
+    deviceRepositoryApi["Device Repository Server
+    (REST API)"]
 
     winSoundScannerService --> |Access device| coreAudioApi
     coreAudioApi --->|Device events| winSoundScannerService
@@ -55,9 +71,6 @@ flowchart BT
     rabbitMqRestForwarder --> |Detect messages| requestQueue
     rabbitMqRestForwarder --->|POST/PUT requests| deviceRepositoryApi
 ```
-</div>
-
-
 
 ## Functions
 
@@ -77,8 +90,6 @@ flowchart BT
 RmqToRestApiForwarder implements a message forwarding pattern that includes debouncing
 for frequent volume change events and reliable delivery with retry and failed queues.
 
-<div style="zoom: 0.5;">
-
 ```mermaid
 flowchart BT
 
@@ -86,33 +97,62 @@ classDef invisibleNode fill:transparent,stroke:transparent;
 classDef dottedBox fill:transparent,fill-opacity:0.55, stroke-dasharray:20 5,stroke-width:2px;
 
 subgraph scannerService["win-sound-scanner-go or linux-sound-scanner"]
-    invisible1["<br><br><br><br><br>"]
+    invisible1["
+    
+    
+    
+    
+    "]
     class invisible1 invisibleNode
-    A["WinSoundScanner<br>(Windows Service) or<br>LinuxSoundScanner<br>(Docker Container)"]
-    invisible2["<br><br><br><br><br>"]
+    A["WinSoundScanner
+    (Windows Service) or
+    LinuxSoundScanner
+    (Docker Container)"]
+    invisible2["
+    
+    
+    
+    
+    "]
     class invisible2 invisibleNode
 end
 class scannerService dottedBox
 
 
 subgraph forwarder["RmqToRestApiForwarder"]
-    invisible3["<br><br><br><br><br>"]
+    invisible3["
+    
+    
+    
+    
+    "]
     class invisible3 invisibleNode
     B["RMQ Queue"]
-    C["RabbitMqConsumerService<br>(BackgroundService)"]
-    D["DebounceWorker<br>(render/capture workers)"]
-    F["ProcessMessageAsync<br>(ACK / retry / fail)"]
+    C["RabbitMqConsumerService
+    (BackgroundService)"]
+    D["DebounceWorker
+    (render/capture workers)"]
+    F["ProcessMessageAsync
+    (ACK / retry / fail)"]
     E["SendToApiAsync"]
-    G["RMQ Retry Queue<br>(.retry)"]
-    H["RMQ Failed Queue<br>(.failed)"]
+    G["RMQ Retry Queue
+    (.retry)"]
+    H["RMQ Failed Queue
+    (.failed)"]
 
-    invisible4["<br><br><br><br><br>"]
+    invisible4["
+    
+    
+    
+    
+    "]
     class invisible4 invisibleNode
 end
 class forwarder dottedBox
 
 
-deviceRepositoryApi["Device Repository Server<br>(REST API)"]
+deviceRepositoryApi["Device Repository Server
+(REST API)"]
 
     A -->|"Publish HTTP messages"| B
     B -->|"Consume"| C
@@ -123,13 +163,11 @@ deviceRepositoryApi["Device Repository Server<br>(REST API)"]
     E -->|"HTTP request"| deviceRepositoryApi
 
 
-    F -->|"on failure<br>attempts remaining"| G
+    F -->|"on failure
+          attempts remaining"| G
     G -->|"TTL expires → re-deliver"| B
     F -->|"max retries exceeded"| H
 ```
-
-</div>
-
 
 ## Technologies Used
 
