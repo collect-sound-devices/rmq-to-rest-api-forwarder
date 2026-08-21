@@ -109,8 +109,10 @@ internal class VersionProvider : IVersionProvider
 
         try
         {
-            var distroName = string.Empty;
-            var distroVersion = string.Empty;
+#pragma warning disable IDE0007
+            string? distroName = string.Empty;
+            string? distroVersion = string.Empty;
+#pragma warning restore IDE0007
 
             if (File.Exists("/etc/os-release"))
             {
@@ -119,8 +121,8 @@ internal class VersionProvider : IVersionProvider
                     .Where(parts => parts.Length == 2)
                     .ToDictionary(parts => parts[0], parts => parts[1].Trim('"'));
 
-                fields.TryGetValue("NAME", out distroName!);
-                fields.TryGetValue("VERSION_ID", out distroVersion!);
+                fields.TryGetValue("NAME", out distroName);
+                fields.TryGetValue("VERSION_ID", out distroVersion);
                 distroName ??= string.Empty;
                 distroVersion ??= string.Empty;
             }
