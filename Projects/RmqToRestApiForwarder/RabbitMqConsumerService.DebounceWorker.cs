@@ -73,6 +73,7 @@ public partial class RabbitMqConsumerService
             _workerTask = Task.Run(RunAsync, stopToken);
         }
 
+        // ReSharper disable once UnusedMember.Local
         public void WaitForStop()
         {
             _workerTask.Wait(CancellationToken.None);
